@@ -1,0 +1,27 @@
+# Node
+node_modules/
+.next/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+
+# LocalStack
+/tmp/localstack
+logs/
+backup/
+
+# Docker
+*.log
+*.pid
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,8 @@
+{
+  "api_url": "http://localhost:4566/restapis/mxdl0slmed/dev/_user_request_",
+  "api_id": "mxdl0slmed",
+  "user_pool_id": "us-east-1_ac57e74bc7114fe687f81286007a1758",
+  "client_id": "ub93cjj66roy6491ztft1s625x",
+  "region": "us-east-1",
+  "endpoint": "http://localhost:4566"
+}
