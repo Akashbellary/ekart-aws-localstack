@@ -123,6 +123,55 @@ def test_cart_api(token):
     
     return all_passed
 
+def test_cart_api_debug(token):
+    """Test Cart API with debug output at each step"""
+    print("\n🛒 [DEBUG] Testing Cart API (step-by-step)...")
+    all_passed = True
+    if not token:
+        print("  [DEBUG] No auth token, skipping cart tests.")
+        return True
+    headers = {'Authorization': f'Bearer {token}'}
+
+    print("  [DEBUG] Step 1: GET /cart (should be empty)")
+    r = requests.get(f"{BASE_URL}/cart", headers=headers)
+    print(f"    [DEBUG] Status: {r.status_code}, Response: {r.text}")
+    all_passed &= print_test(f"GET /cart - Status: {r.status_code}", r.status_code == 200)
+
+    print("  [DEBUG] Step 2: GET /products (to pick a product)")
+    r = requests.get(f"{BASE_URL}/products")
+    print(f"    [DEBUG] Status: {r.status_code}, Response: {r.text}")
+    if r.status_code == 200:
+        products = r.json()
+        if len(products) > 0:
+            product_id = products[0]['product_id']
+            print(f"  [DEBUG] Step 3: POST /cart/items (add product {product_id})")
+            cart_item = {
+                'product_id': product_id,
+                'quantity': 2
+            }
+            r = requests.post(f"{BASE_URL}/cart/items", headers=headers, json=cart_item)
+            print(f"    [DEBUG] Status: {r.status_code}, Response: {r.text}")
+            all_passed &= print_test(f"POST /cart/items - Status: {r.status_code}", r.status_code == 200)
+
+            print(f"  [DEBUG] Step 4: PUT /cart/items/{{id}} (update quantity)")
+            update_data = {'quantity': 3}
+            r = requests.put(f"{BASE_URL}/cart/items/{product_id}", headers=headers, json=update_data)
+            print(f"    [DEBUG] Status: {r.status_code}, Response: {r.text}")
+            all_passed &= print_test(f"PUT /cart/items/{{id}} - Status: {r.status_code}", r.status_code in [200, 405])
+
+            print("  [DEBUG] Step 5: GET /cart (should have items)")
+            r = requests.get(f"{BASE_URL}/cart", headers=headers)
+            print(f"    [DEBUG] Status: {r.status_code}, Response: {r.text}")
+            all_passed &= print_test(f"GET /cart (with items) - Status: {r.status_code}", r.status_code == 200)
+            if r.status_code == 200:
+                cart = r.json()
+                print(f"     [DEBUG] Cart has {len(cart.get('items', []))} items")
+        else:
+            print("  [DEBUG] No products found to add to cart.")
+    else:
+        print("  [DEBUG] Failed to fetch products.")
+    return all_passed
+
 def test_orders_api(token):
     """Test Orders API"""
     print("\n📋 Testing Orders API...")
@@ -172,6 +221,8 @@ def main():
     
     # Test Cart API (requires auth)
     all_tests_passed &= test_cart_api(token)
+    # Test Cart API with debug (requires auth)
+    all_tests_passed &= test_cart_api_debug(token)
     
     # Test Orders API (requires auth)
     all_tests_passed &= test_orders_api(token)
