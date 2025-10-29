@@ -323,24 +323,25 @@ def deploy_lambda_functions(lambda_client, role_arn, user_pool_id, client_id):
     for func in functions:
         try:
             function_dir = PROJECT_ROOT / 'lambda-functions' / func['dir']
+            # Install requirements.txt if present
+            requirements_path = function_dir / 'requirements.txt'
+            if requirements_path.exists():
+                    print(f"  📦 Installing dependencies for {func['dir']} with --upgrade...")
+                    subprocess.run([
+                        'pip', 'install', '-r', str(requirements_path), '-t', str(function_dir), '--upgrade'
+                    ], check=True)
             zip_path = create_lambda_deployment_package(function_dir)
-            
             with open(zip_path, 'rb') as f:
                 zip_content = f.read()
-            
             function_name = func['name']
-            
             # Check if function exists
             try:
                 lambda_client.get_function(FunctionName=function_name)
-                # Function exists, delete it first (LocalStack issue workaround)
                 print(f"  ⚠ Deleting existing function: {function_name}")
                 lambda_client.delete_function(FunctionName=function_name)
-                time.sleep(2)  # Wait for deletion
+                time.sleep(2)
             except lambda_client.exceptions.ResourceNotFoundException:
-                pass  # Function doesn't exist, that's fine
-            
-            # Create function
+                pass
             response = lambda_client.create_function(
                 FunctionName=function_name,
                 Runtime='python3.9',
@@ -352,11 +353,8 @@ def deploy_lambda_functions(lambda_client, role_arn, user_pool_id, client_id):
                 MemorySize=256
             )
             print(f"  ✓ Created function: {function_name}")
-            
-            # Get function ARN
             response = lambda_client.get_function(FunctionName=function_name)
             deployed_functions[func['dir']] = response['Configuration']['FunctionArn']
-            
             # Clean up zip file
             zip_path.unlink()
             
@@ -643,6 +641,29 @@ def main():
             json.dump(config, f, indent=2)
         print(f"💾 Configuration saved to: {config_path}")
         print()
+
+        # Update frontend .env.local
+        env_path = PROJECT_ROOT / 'frontend' / '.env.local'
+        env_content = f"""# EKart Store Frontend - Auto-generated Environment Configuration
+# Generated from serverless-config.json
+
+# API Gateway URL
+NEXT_PUBLIC_API_URL={api_url}
+
+# AWS Cognito Configuration
+NEXT_PUBLIC_AWS_REGION={REGION}
+NEXT_PUBLIC_USER_POOL_ID={user_pool_id}
+NEXT_PUBLIC_CLIENT_ID={client_id}
+
+# LocalStack Endpoint
+NEXT_PUBLIC_AWS_ENDPOINT={ENDPOINT}
+
+# Environment
+NEXT_PUBLIC_ENV=development
+"""
+        with open(env_path, 'w') as env_file:
+            env_file.write(env_content)
+        print(f"🔧 Updated frontend .env.local: {env_path}")
         
     except Exception as e:
         print()

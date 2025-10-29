@@ -1,8 +1,8 @@
 {
-  "api_url": "http://localhost:4566/restapis/mxdl0slmed/dev/_user_request_",
-  "api_id": "mxdl0slmed",
-  "user_pool_id": "us-east-1_ac57e74bc7114fe687f81286007a1758",
-  "client_id": "ub93cjj66roy6491ztft1s625x",
+  "api_url": "http://localhost:4566/restapis/jm0txzclfo/dev/_user_request_",
+  "api_id": "jm0txzclfo",
+  "user_pool_id": "us-east-1_d1c9cdc437a2483da6eb11e6eb9f54f5",
+  "client_id": "3wj3hsawwgym6v2yyafd8gv1nt",
   "region": "us-east-1",
   "endpoint": "http://localhost:4566"
 }
