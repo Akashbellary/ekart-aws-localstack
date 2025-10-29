@@ -203,6 +203,23 @@ def test_orders_api(token):
     
     return all_passed
 
+def test_payments_api():
+    """Test Payments API via LocalStack Stripe"""
+    print("\n💳 Testing Payments API...")
+    all_passed = True
+    # Create a small test payment intent (e.g., $1.99 -> 199 cents)
+    payload = {
+        'amount': 199,
+        'currency': 'usd',
+        'description': 'Test checkout'
+    }
+    r = requests.post(f"{BASE_URL}/payments", json=payload)
+    all_passed &= print_test(f"POST /payments - Status: {r.status_code}", r.status_code == 200)
+    if r.status_code == 200:
+        data = r.json()
+        print(f"     Payment intent: {data.get('payment_intent_id')} status: {data.get('status')}")
+    return all_passed
+
 def main():
     """Run all tests"""
     print("=" * 70)
@@ -226,6 +243,9 @@ def main():
     
     # Test Orders API (requires auth)
     all_tests_passed &= test_orders_api(token)
+    
+    # Test Payments API (Stripe via LocalStack)
+    all_tests_passed &= test_payments_api()
     
     # Summary
     print("\n" + "=" * 70)

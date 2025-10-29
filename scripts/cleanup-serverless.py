@@ -6,7 +6,15 @@ Use before redeployment to avoid conflicts
 import boto3
 import sys
 
-ENDPOINT = "http://localhost:4566"
+import json
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).parent.parent
+CONFIG_PATH = PROJECT_ROOT / 'serverless-config.json'
+with open(CONFIG_PATH, 'r') as _cfg_file:
+    _CFG = json.load(_cfg_file)
+
+ENDPOINT = _CFG.get('endpoint')
 REGION = "us-east-1"
 ENV = "dev"
 

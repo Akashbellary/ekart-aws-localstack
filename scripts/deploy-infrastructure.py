@@ -5,12 +5,19 @@ Deploy AWS infrastructure to LocalStack using boto3 directly.
 """
 
 import boto3
+import json
+from pathlib import Path
 import time
 import traceback
 
-ENDPOINT = "http://localhost:4566"
-REGION = "us-east-1"
-ENV = "dev"
+PROJECT_ROOT = Path(__file__).parent.parent
+CONFIG_PATH = PROJECT_ROOT / 'serverless-config.json'
+with open(CONFIG_PATH, 'r') as _cfg_file:
+    _CFG = json.load(_cfg_file)
+
+ENDPOINT = _CFG.get('endpoint')
+REGION = _CFG.get('region')
+ENV = _CFG.get('env', 'dev')
 
 def debug(msg):
     print(f"[deploy-infrastructure] {msg}")

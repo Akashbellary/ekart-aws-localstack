@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { API_URL } from '@/lib/config';
 
 interface CartItem {
   product_id: string;
@@ -16,14 +17,24 @@ interface Cart {
   items: CartItem[];
 }
 
+interface Product {
+  product_id: string;
+  title: string;
+  price: number;
+  image_url?: string;
+}
+
 export default function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null);
+  const [products, setProducts] = useState<Map<string, Product>>(new Map());
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     fetchCart();
   }, []);
+
+  const API = API_URL;
 
   const fetchCart = async () => {
     try {
@@ -33,8 +44,7 @@ export default function CartPage() {
         return;
       }
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_URL}/api/cart`, {
+      const response = await fetch(`${API}/api/cart`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -43,6 +53,16 @@ export default function CartPage() {
       if (response.ok) {
         const data = await response.json();
         setCart(data);
+
+        if (data.items && data.items.length > 0) {
+          const uniqueIds = Array.from(new Set((data.items as CartItem[]).map((i) => i.product_id)));
+          const prodResults = await Promise.all(uniqueIds.map((pid) => fetch(`${API}/api/products/${pid}`).then(r => r.json())));
+          const map = new Map<string, Product>();
+          prodResults.forEach((p: Product) => map.set(p.product_id, p));
+          setProducts(map);
+        } else {
+          setProducts(new Map());
+        }
       }
     } catch (error) {
       console.error('Error fetching cart:', error);
@@ -54,8 +74,7 @@ export default function CartPage() {
   const removeItem = async (productId: string) => {
     try {
       const token = localStorage.getItem('access_token');
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_URL}/api/cart/items/${productId}`, {
+      const response = await fetch(`${API}/api/cart/items/${productId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -75,12 +94,13 @@ export default function CartPage() {
 
     try {
       const token = localStorage.getItem('access_token');
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_URL}/api/cart/items/${productId}?quantity=${newQuantity}`, {
+      const response = await fetch(`${API}/api/cart/items/${productId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ quantity: newQuantity })
       });
 
       if (response.ok) {
@@ -90,6 +110,11 @@ export default function CartPage() {
       console.error('Error updating quantity:', error);
     }
   };
+
+  const subtotal = cart?.items?.reduce((sum, i) => {
+    const unit = Number((i as any).price) || 0;
+    return sum + unit * Number(i.quantity || 0);
+  }, 0) || 0;
 
   if (loading) {
     return (
@@ -121,47 +146,56 @@ export default function CartPage() {
         {/* Cart Items */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg shadow">
-            {cart.items.map((item) => (
-              <div key={item.product_id} className="p-6 border-b border-gray-200 last:border-b-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Product ID: {item.product_id.substring(0, 8)}...
-                    </h3>
-                    <p className="text-sm text-gray-500">Added: {new Date(item.added_at).toLocaleDateString()}</p>
-                  </div>
+            {cart.items.map((item) => {
+              const product = products.get(item.product_id);
+              const price = Number((item as any).price) || 0;
+              return (
+                <div key={item.product_id} className="p-6 border-b border-gray-200 last:border-b-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {(item as any).product_name || (product ? product.title : `Product ${item.product_id.substring(0,8)}...`)}
+                      </h3>
+                      <p className="text-sm text-gray-500">Unit price: ${price.toFixed(2)}</p>
+                      <p className="text-sm text-gray-500">Added: {new Date(item.added_at).toLocaleDateString()}</p>
+                    </div>
 
-                  <div className="flex items-center space-x-4">
-                    {/* Quantity Controls */}
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-6">
+                      <div className="text-right">
+                        <p className="font-semibold">${(price * Number(item.quantity || 0)).toFixed(2)}</p>
+                      </div>
+
+                      {/* Quantity Controls */}
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                          className="p-1 rounded border border-gray-300 hover:bg-gray-100"
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="w-8 text-center">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                          className="p-1 rounded border border-gray-300 hover:bg-gray-100"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {/* Remove Button */}
                       <button
-                        onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
-                        className="p-1 rounded border border-gray-300 hover:bg-gray-100"
-                        aria-label="Decrease quantity"
+                        onClick={() => removeItem(item.product_id)}
+                        className="text-red-600 hover:text-red-800"
+                        aria-label="Remove item from cart"
                       >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
-                        className="p-1 rounded border border-gray-300 hover:bg-gray-100"
-                        aria-label="Increase quantity"
-                      >
-                        <Plus className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
-                    {/* Remove Button */}
-                    <button
-                      onClick={() => removeItem(item.product_id)}
-                      className="text-red-600 hover:text-red-800"
-                      aria-label="Remove item from cart"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -169,7 +203,6 @@ export default function CartPage() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4">Order Summary</h2>
-            
             <div className="space-y-2 mb-4">
               <div className="flex justify-between">
                 <span className="text-gray-600">Items:</span>
@@ -178,8 +211,12 @@ export default function CartPage() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Total Quantity:</span>
                 <span className="font-semibold">
-                  {cart.items.reduce((sum, item) => sum + item.quantity, 0)}
+                  {cart.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)}
                 </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Subtotal:</span>
+                <span className="font-semibold">${subtotal.toFixed(2)}</span>
               </div>
             </div>
 

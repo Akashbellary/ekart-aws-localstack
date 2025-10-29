@@ -1,4 +1,4 @@
-#!C:\Users\akash\anaconda3\python.exe
+#!/usr/bin/python3
 
 import sys
 import json

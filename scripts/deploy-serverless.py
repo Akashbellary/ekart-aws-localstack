@@ -11,11 +11,16 @@ import os
 import subprocess
 from pathlib import Path
 
-# LocalStack configuration
-ENDPOINT = "http://localhost:4566"
-REGION = "us-east-1"
-ENV = "dev"
+# LocalStack configuration (read from serverless-config.json)
 PROJECT_ROOT = Path(__file__).parent.parent
+CONFIG_PATH = PROJECT_ROOT / 'serverless-config.json'
+with open(CONFIG_PATH, 'r') as _cfg_file:
+    _CFG = json.load(_cfg_file)
+
+ENDPOINT = _CFG.get('endpoint')
+REGION = _CFG.get('region')
+ENV = _CFG.get('env', 'dev')
+LAMBDA_ENDPOINT = _CFG.get('lambda_endpoint', 'http://localhost.localstack.cloud:4566')
 
 def create_aws_clients():
     """Create AWS clients for LocalStack"""
@@ -147,22 +152,19 @@ def create_cognito_user_pool(cognito):
                     'Mutable': True
                 },
                 {
-                    'Name': 'user_type',
+                    'Name': 'custom:user_type',
                     'AttributeDataType': 'String',
-                    'Mutable': True,
-                    'DeveloperOnlyAttribute': False
+                    'Mutable': True
                 },
                 {
-                    'Name': 'first_name',
+                    'Name': 'custom:first_name',
                     'AttributeDataType': 'String',
-                    'Mutable': True,
-                    'DeveloperOnlyAttribute': False
+                    'Mutable': True
                 },
                 {
-                    'Name': 'last_name',
+                    'Name': 'custom:last_name',
                     'AttributeDataType': 'String',
-                    'Mutable': True,
-                    'DeveloperOnlyAttribute': False
+                    'Mutable': True
                 }
             ]
         )
@@ -261,13 +263,17 @@ def create_lambda_role(iam):
 def create_lambda_deployment_package(function_dir):
     """Create ZIP deployment package for Lambda function"""
     zip_path = function_dir / 'function.zip'
-    
+
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        # Add handler.py
-        handler_path = function_dir / 'handler.py'
-        if handler_path.exists():
-            zipf.write(handler_path, 'handler.py')
-    
+        for root, dirs, files in os.walk(function_dir):
+            root_path = Path(root)
+            # Skip existing zip files
+            files_to_add = [f for f in files if f != 'function.zip']
+            for file_name in files_to_add:
+                full_path = root_path / file_name
+                arcname = str(full_path.relative_to(function_dir))
+                zipf.write(full_path, arcname)
+
     return zip_path
 
 def deploy_lambda_functions(lambda_client, role_arn, user_pool_id, client_id):
@@ -283,7 +289,7 @@ def deploy_lambda_functions(lambda_client, role_arn, user_pool_id, client_id):
                 'USER_POOL_ID': user_pool_id,
                 'CLIENT_ID': client_id,
                 'USERS_TABLE': f'ekart-users-{ENV}',
-                'AWS_ENDPOINT_URL': ''  # Empty for LocalStack internal routing
+                'AWS_ENDPOINT_URL': LAMBDA_ENDPOINT
             }
         },
         {
@@ -292,7 +298,7 @@ def deploy_lambda_functions(lambda_client, role_arn, user_pool_id, client_id):
             'handler': 'handler.lambda_handler',
             'env': {
                 'PRODUCTS_TABLE': f'ekart-products-{ENV}',
-                'AWS_ENDPOINT_URL': ''  # Empty for LocalStack internal routing
+                'AWS_ENDPOINT_URL': LAMBDA_ENDPOINT
             }
         },
         {
@@ -302,7 +308,7 @@ def deploy_lambda_functions(lambda_client, role_arn, user_pool_id, client_id):
             'env': {
                 'CARTS_TABLE': f'ekart-carts-{ENV}',
                 'PRODUCTS_TABLE': f'ekart-products-{ENV}',
-                'AWS_ENDPOINT_URL': ''  # Empty for LocalStack internal routing
+                'AWS_ENDPOINT_URL': LAMBDA_ENDPOINT
             }
         },
         {
@@ -313,7 +319,17 @@ def deploy_lambda_functions(lambda_client, role_arn, user_pool_id, client_id):
                 'ORDERS_TABLE': f'ekart-orders-{ENV}',
                 'CARTS_TABLE': f'ekart-carts-{ENV}',
                 'PRODUCTS_TABLE': f'ekart-products-{ENV}',
-                'AWS_ENDPOINT_URL': ''  # Empty for LocalStack internal routing
+                'AWS_ENDPOINT_URL': LAMBDA_ENDPOINT
+            }
+        },
+        {
+            'name': 'ekart-payment-processor',
+            'dir': 'payment-processor',
+            'handler': 'handler.lambda_handler',
+            'env': {
+                'AWS_ENDPOINT_URL': LAMBDA_ENDPOINT,
+                'STRIPE_BASE_URL': f"{LAMBDA_ENDPOINT}/stripe",
+                'STRIPE_API_KEY': 'sk_test_12345'
             }
         }
     ]
@@ -407,7 +423,8 @@ def create_api_gateway(apigateway, lambda_client, lambda_functions, user_pool_id
             {'path': 'auth', 'lambda_key': 'auth-api', 'methods': ['POST', 'GET']},
             {'path': 'products', 'lambda_key': 'products-api', 'methods': ['GET', 'POST', 'PUT', 'DELETE']},
             {'path': 'cart', 'lambda_key': 'cart-api', 'methods': ['GET', 'POST', 'PUT', 'DELETE']},
-            {'path': 'orders', 'lambda_key': 'orders-api', 'methods': ['GET', 'POST', 'PUT']}
+            {'path': 'orders', 'lambda_key': 'orders-api', 'methods': ['GET', 'POST', 'PUT']},
+            {'path': 'payments', 'lambda_key': 'payment-processor', 'methods': ['POST']}
         ]
         
         for route in routes:
@@ -618,7 +635,7 @@ def main():
         print(f"  • API Gateway URL: {api_url}")
         print()
         print("🎯 NEXT STEPS:")
-        print("  1. Seed database: python scripts/seed-products-fixed.py")
+        print("  1. Seed database: python scripts/seed.py")
         print("  2. Update frontend .env.local with API_URL")
         print("  3. Start frontend: cd frontend && npm run dev")
         print()
@@ -626,20 +643,20 @@ def main():
         print(f"  Example: {api_url}/products")
         print()
         
-        # Save configuration
-        config = {
+        # Save configuration (preserve existing keys, update dynamic ones)
+        _CFG.update({
             'api_url': api_url,
             'api_id': api_id,
             'user_pool_id': user_pool_id,
             'client_id': client_id,
             'region': REGION,
-            'endpoint': ENDPOINT
-        }
-        
-        config_path = PROJECT_ROOT / 'serverless-config.json'
-        with open(config_path, 'w') as f:
-            json.dump(config, f, indent=2)
-        print(f"💾 Configuration saved to: {config_path}")
+            'endpoint': ENDPOINT,
+            'env': ENV,
+            'lambda_endpoint': LAMBDA_ENDPOINT
+        })
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(_CFG, f, indent=2)
+        print(f"💾 Configuration saved to: {CONFIG_PATH}")
         print()
 
         # Update frontend .env.local

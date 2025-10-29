@@ -1,8 +1,10 @@
 {
-  "api_url": "http://localhost:4566/restapis/jm0txzclfo/dev/_user_request_",
-  "api_id": "jm0txzclfo",
-  "user_pool_id": "us-east-1_d1c9cdc437a2483da6eb11e6eb9f54f5",
-  "client_id": "3wj3hsawwgym6v2yyafd8gv1nt",
+  "api_url": "http://10.0.2.4:4566/restapis/nwiuqbqv2p/dev/_user_request_",
+  "api_id": "nwiuqbqv2p",
+  "user_pool_id": "us-east-1_5cf8649f09b04a9b8526a3fb371a60d3",
+  "client_id": "l4y4l33t94skr6ga3hr7tuwkf2",
   "region": "us-east-1",
-  "endpoint": "http://localhost:4566"
+  "endpoint": "http://10.0.2.4:4566",
+  "env": "dev",
+  "lambda_endpoint": "http://localhost.localstack.cloud:4566"
 }
