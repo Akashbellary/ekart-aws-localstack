@@ -1,31 +1,34 @@
-# EKart Store - Complete E-Commerce Platform
+# EKart Store - LocalStack Tutorial Edition
 
-A modern, cloud-native e-commerce platform built with Next.js, FastAPI, and AWS services (emulated via LocalStack). Features include separate seller and buyer workflows, real-time inventory management, 3D product visualization, secure authentication, and comprehensive order processing.
+A comprehensive e-commerce platform demonstrating multi-service AWS architectures using LocalStack. This tutorial showcases how to build and test complex cloud-native applications locally before deploying to production.
 
-## 🏗️ Architecture
+## 🎯 Learning Objectives
 
-### Tech Stack
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, Three.js, Framer Motion
-- **Backend**: Python FastAPI, Pydantic, boto3
-- **Database**: DynamoDB (via LocalStack)
-- **Authentication**: AWS Cognito
-- **File Storage**: S3 (via LocalStack)
-- **Event Processing**: Lambda, SQS, EventBridge
-- **Email**: SES (via LocalStack)
-- **Infrastructure**: CloudFormation, Docker
+This tutorial demonstrates:
+1. Multi-service AWS integration with LocalStack
+2. Event-driven architecture patterns
+3. Serverless application development
+4. Infrastructure as Code with CloudFormation
+5. Modern frontend/backend development practices
 
-### AWS Services Used
-- API Gateway - RESTful API endpoints
-- Lambda - Serverless compute for order processing
-- DynamoDB - NoSQL database for all entities
-- S3 - Product images and file storage
-- Cognito - User authentication and authorization
-- SQS - Asynchronous message processing
-- EventBridge - Event-driven architecture
-- SES - Transactional email delivery
-- CloudWatch - Monitoring and logging
-- IAM - Access control and permissions
-- CloudFormation - Infrastructure as Code
+## 🏗️ Architecture Overview
+
+### Core AWS Services (Emulated)
+- **API Gateway** - RESTful API endpoints
+- **Lambda** - Serverless compute functions
+- **DynamoDB** - NoSQL database
+- **S3** - File storage for product images
+- **Cognito** - Authentication and user management
+- **CloudFormation** - Infrastructure provisioning
+
+### Service Interactions
+```
+Frontend ↔ API Gateway ↔ Lambda Functions ↔ DynamoDB
+                     ↕
+                 Cognito Auth
+                     ↕
+                   S3 Storage
+```
 
 ## 🚀 Quick Start
 
@@ -33,19 +36,23 @@ A modern, cloud-native e-commerce platform built with Next.js, FastAPI, and AWS 
 - Docker & Docker Compose
 - Node.js 18+
 - Python 3.9+
-- AWS CLI (configured for LocalStack)
+- AWS CLI configured for LocalStack
 
 ### One-Command Setup
-```
+```bash
+# Clone and navigate to project
 git clone <repository-url>
 cd ekart-store
+
+# Make scripts executable
 chmod +x scripts/*.sh
+
+# Setup everything automatically
 ./scripts/setup-local.sh
-make start
 ```
 
-### Manual Setup
-```
+### Manual Setup Steps
+```bash
 # 1. Install dependencies
 make install
 
@@ -58,162 +65,171 @@ make deploy-infra
 # 4. Seed sample data
 make seed-data
 
-# 5. Start all services
+# 5. Start services
 make start
 ```
 
-## 🎯 Features
+## 🔧 Key Components Explained
 
-### For Buyers
-- **Product Discovery**: Advanced search with filters, categories, and 3D product visualization
-- **Shopping Cart**: Persistent cart with real-time inventory validation
-- **Secure Checkout**: Multiple payment methods with order tracking
-- **Order Management**: Real-time order status, shipping notifications
-- **User Profile**: Order history, addresses, preferences
+### 1. Order Processing Workflow
 
-### For Sellers
-- **Seller Dashboard**: Comprehensive analytics and order management
-- **Product Management**: Easy product listing with image uploads and 3D model support
-- **Inventory Control**: Real-time stock tracking with low-stock alerts
-- **Order Fulfillment**: Order processing, shipping integration
-- **Analytics**: Sales reports, customer insights, revenue tracking
+**Problem Identified**: Orders weren't appearing in the orders list after successful payment due to incomplete integration between payment processing and order creation.
 
-### For Admins
-- **System Administration**: User management, seller verification
-- **Platform Analytics**: System-wide metrics, performance monitoring
-- **Content Management**: Category management, featured products
-- **Order Oversight**: Platform-wide order monitoring and support
+**Solution Implemented**:
+- Enhanced payment processor Lambda to handle both payment intents and order creation
+- Added proper linking between payment intents and orders in DynamoDB
+- Updated frontend to collect shipping information and pass it during payment confirmation
 
-## 🛠️ Development
+**Workflow**:
+1. User adds items to cart
+2. Proceeds to checkout with shipping information
+3. Frontend calls `/api/payments/create-payment-intent` to create payment
+4. After payment confirmation, frontend calls `/api/payments/confirm-payment`
+5. Payment processor creates order in DynamoDB and links it to payment intent
+6. Orders are now visible in the `/orders` page
 
-### Available Commands
+### 2. Data Models
+
+#### Orders Table (`ekart-orders-dev`)
+- Primary Key: `order_id`
+- GSI: `buyer_id` and `seller_id` for efficient querying
+- Fields: items, total_amount, status, payment_status, shipping_address
+
+#### Products Table (`ekart-products-dev`)
+- Primary Key: `product_id`
+- GSI: `seller_id` and `category` for filtering
+- Fields: title, description, price, stock_quantity, images
+
+### 3. API Endpoints
+
+#### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login and get JWT token
+
+#### Products
+- `GET /api/products` - List products
+- `POST /api/products` - Create product (sellers)
+- `GET /api/products/{id}` - Get product details
+- `PUT /api/products/{id}` - Update product (sellers)
+
+#### Cart
+- `GET /api/cart` - Get user's cart
+- `POST /api/cart/items` - Add item to cart
+- `PUT /api/cart/items/{id}` - Update item quantity
+- `DELETE /api/cart/items/{id}` - Remove item from cart
+
+#### Payments
+- `POST /api/payments/create-payment-intent` - Create payment intent
+- `POST /api/payments/confirm-payment` - Confirm payment and create order
+
+#### Orders
+- `GET /api/orders` - List user's orders
+- `GET /api/orders/{id}` - Get order details
+- `PUT /api/orders/{id}/status` - Update order status (sellers)
+
+### To run the project using python scripts
+```bash
+#cleanup the existing lambda functions (optinal)
+python scripts\cleanup-serverless.py 
+
+#Run this to deploy the dynamodb, s3 backets, IAM Role, API Gateway
+python scripts\deploy-infrastructure.py
+
+#Deploy Lambda functions
+python scripts\deploy-serverless.py    
+
+#Seed the sample products data
+python scripts\seed.py      
+
+#Test script. Tests involving extensions may not work for free version of localstack
+python scripts\test-serverless-apis.py
+
+#If frontend fails to work, run this script. This fixes api config to work with frontend.
+python scripts\configure-frontend.py 
 ```
-make help              # Show all available commands
-make install           # Install all dependencies
-make start             # Start all services
-make stop              # Stop all services
-make test              # Run all tests
-make build             # Build all components
-make clean             # Clean up containers and artifacts
-```
 
-### Project Structure
-```
-ekart-store/
-├── backend/           # FastAPI backend service
-├── frontend/          # Next.js frontend application
-├── lambda-functions/  # AWS Lambda functions
-├── infrastructure/    # CloudFormation templates
-├── scripts/           # Setup and utility scripts
-├── docs/             # Documentation
-└── docker-compose.yml # Local development environment
-```
+## 🛠️ Development Commands
 
-### API Documentation
-Once running, visit:
-- **Swagger UI**: http://localhost:8000/api/docs
-- **ReDoc**: http://localhost:8000/api/redoc
+```bash
+# Show all available commands
+make help
 
-### Testing
-```
-# Run all tests
+# Install all dependencies
+make install
+
+# Start all services
+make start
+
+# Stop all services
+make stop
+
+# Redeploy infrastructure
+make deploy-infra
+
+# Seed database with sample data
+make seed-data
+
+# Run tests
 make test
 
-# Run specific test suites
-cd backend && python -m pytest tests/test_products.py -v
-cd frontend && npm test -- --testPathPattern=components
+# Clean up environment
+make clean
 ```
 
-## 🔧 Configuration
+## 🐛 Troubleshooting Common Issues
 
-### Environment Variables
-Copy `.env.example` to `.env` and configure:
+### Orders Not Showing After Payment
+**Cause**: Previous implementation didn't link payment confirmation with order creation
+**Fix**: Updated payment processor Lambda to create orders when payments are confirmed
 
+### LocalStack Services Not Starting
+```bash
+# Check LocalStack health
+curl http://localhost:4566/_localstack/health
+
+# Restart LocalStack
+make stop && make start
 ```
-# Backend Configuration
-ENV=development
-LOCALSTACK_ENDPOINT=http://localhost:4566
-AWS_REGION=us-east-1
 
-# Frontend Configuration
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
-NEXT_PUBLIC_AWS_REGION=us-east-1
+### Database Connection Issues
+```bash
+# Check DynamoDB tables
+aws --endpoint-url=http://localhost:4566 dynamodb list-tables
+
+# Check table contents
+aws --endpoint-url=http://localhost:4566 dynamodb scan --table-name ekart-orders-dev
 ```
 
-### LocalStack Configuration
-LocalStack runs with the following services:
-- DynamoDB (port 4566)
-- S3 (port 4566)
-- Lambda (port 4566)
-- API Gateway (port 4566)
-- Cognito (port 4566)
-- SES (port 4566)
-- SQS (port 4566)
-- EventBridge (port 4566)
-
-## 📊 Monitoring & Observability
+## 📊 Monitoring
 
 ### LocalStack Dashboard
-- **URL**: http://localhost:4566/_localstack/cockpit
-- **Features**: Resource browser, logs, metrics
+- URL: http://localhost:4566/_localstack/cockpit
+- Features: Resource browser, logs, metrics
 
-### Application Logs
-```
-make logs              # View all service logs
-docker-compose logs -f backend
-docker-compose logs -f frontend
-```
+### Service URLs
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/api/docs
+- **LocalStack**: http://localhost:4566
 
-### Health Checks
-```
-make ready             # Check all service health
-curl http://localhost:8000/health
-curl http://localhost:4566/_localstack/health
-```
+## 🤝 Contributing
 
-## 🚢 Deployment
+This project serves as a comprehensive example for the LocalStack community, showcasing:
+- Multi-service AWS integration patterns
+- Serverless application best practices
+- Real-world e-commerce workflows
+- Event-driven architecture implementation
 
-### Local Development
-```
-make dev-setup         # Complete dev environment setup
-make start             # Start development servers
-```
-
-### Production Deployment
-```
-make build             # Build production images
-make production        # Deploy to production environment
-```
-
-## 🤝 Contributing to LocalStack
-
-This project is designed as a comprehensive sample for the LocalStack community. It demonstrates:
-
-1. **Multi-service AWS architecture** using 10+ AWS services
-2. **Event-driven patterns** with SQS, Lambda, and EventBridge
-3. **Real-world e-commerce workflows** with proper error handling
-4. **Modern frontend techniques** including 3D visualization
-5. **Production-ready practices** with monitoring, testing, and documentation
-
-### Key LocalStack Features Showcased
-- **Service Integration**: Complex workflows across multiple AWS services
-- **Event-Driven Architecture**: Async processing with queues and events
-- **File Management**: S3 integration for product images and assets
-- **Authentication**: Cognito user pools with JWT validation
-- **Database Operations**: DynamoDB with GSI queries and streams
-- **Email Services**: SES for transactional emails
-- **Infrastructure as Code**: CloudFormation deployment automation
+### Key Features Demonstrated
+1. **Service Integration**: Complex workflows across multiple AWS services
+2. **Database Operations**: DynamoDB with GSI queries and efficient data modeling
+3. **Authentication**: Cognito user pools with JWT validation
+4. **Infrastructure as Code**: CloudFormation deployment automation
+5. **File Management**: S3 integration for product images
 
 ## 📝 License
 
 This project is open source and available under the [MIT License](LICENSE).
-
-## 🙏 Acknowledgments
-
-- LocalStack team for providing excellent AWS emulation
-- Next.js team for the amazing React framework
-- FastAPI team for the high-performance Python web framework
-- Three.js community for 3D web graphics capabilities
 
 ---
 
