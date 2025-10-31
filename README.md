@@ -37,14 +37,28 @@ This tutorial demonstrates:
 ### One-Command Setup
 ```bash
 # Clone and navigate to project
-git clone <repository-url>
-cd ekart-store
+git clone https://github.com/Akashbellary/ekart-aws-localstack.git
+cd ekart-aws-localstack
+```
+### To run the project using python scripts
+```bash
+#cleanup the existing lambda functions (optinal)
+python scripts\cleanup-serverless.py 
 
-# Make scripts executable
-chmod +x scripts/*.sh
+#Run this to deploy the dynamodb, s3 backets, IAM Role, API Gateway
+python scripts\deploy-infrastructure.py
 
-# Setup everything automatically
-./scripts/setup-local.sh
+#Deploy Lambda functions
+python scripts\deploy-serverless.py    
+
+#Seed the sample products data
+python scripts\seed.py      
+
+#Test script. Tests involving extensions may not work for free version of localstack
+python scripts\test-serverless-apis.py
+
+#If frontend fails to work, run this script. This fixes api config to work with frontend.
+python scripts\configure-frontend.py 
 ```
 
 ### Manual Setup Steps
@@ -122,27 +136,6 @@ make start
 - `GET /api/orders` - List user's orders
 - `GET /api/orders/{id}` - Get order details
 - `PUT /api/orders/{id}/status` - Update order status (sellers)
-
-### To run the project using python scripts
-```bash
-#cleanup the existing lambda functions (optinal)
-python scripts\cleanup-serverless.py 
-
-#Run this to deploy the dynamodb, s3 backets, IAM Role, API Gateway
-python scripts\deploy-infrastructure.py
-
-#Deploy Lambda functions
-python scripts\deploy-serverless.py    
-
-#Seed the sample products data
-python scripts\seed.py      
-
-#Test script. Tests involving extensions may not work for free version of localstack
-python scripts\test-serverless-apis.py
-
-#If frontend fails to work, run this script. This fixes api config to work with frontend.
-python scripts\configure-frontend.py 
-```
 
 ## 🛠️ Development Commands
 
