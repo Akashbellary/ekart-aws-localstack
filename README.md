@@ -23,11 +23,7 @@ This tutorial demonstrates:
 
 ### Service Interactions
 ```
-Frontend ↔ API Gateway ↔ Lambda Functions ↔ DynamoDB
-                     ↕
-                 Cognito Auth
-                     ↕
-                   S3 Storage
+![Alt text](ekart aws services arch.png)
 ```
 
 ## 🚀 Quick Start
