@@ -34,7 +34,7 @@ This tutorial demonstrates:
 - Python 3.9+
 - AWS CLI configured for LocalStack
 
-### One-Command Setup
+### Download repo and locate the project dir
 ```bash
 # Clone and navigate to project
 git clone https://github.com/Akashbellary/ekart-aws-localstack.git
