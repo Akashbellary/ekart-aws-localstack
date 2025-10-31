@@ -34,7 +34,7 @@ export default function HomePage() {
           <a href="/products" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition">
             Browse Products
           </a>
-          <a href="/auth/seller-register" className="inline-block bg-gray-200 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-300 transition">
+          <a href="/seller/register" className="inline-block bg-gray-200 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-300 transition">
             Become a Seller
           </a>
         </div>

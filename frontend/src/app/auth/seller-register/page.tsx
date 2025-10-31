@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
-export default function CustomerSignUpPage() {
+export default function SellerSignUpPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: '',
@@ -16,7 +16,7 @@ export default function CustomerSignUpPage() {
     firstName: '',
     lastName: '',
     phone: '',
-    userType: 'customer' // Default to customer
+    userType: 'seller' // Default to seller
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export default function CustomerSignUpPage() {
         localStorage.setItem('userType', formData.userType);
       }
 
-      router.push('/products');
+      router.push('/seller/dashboard');
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
@@ -88,7 +88,7 @@ export default function CustomerSignUpPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-center text-3xl font-bold">
-              Create your Customer Account
+              Create your Seller Account
             </CardTitle>
             <p className="mt-2 text-center text-sm text-gray-600">
               Already have an account?{' '}
@@ -182,15 +182,15 @@ export default function CustomerSignUpPage() {
                 disabled={loading}
                 className="w-full"
               >
-                {loading ? 'Creating account...' : 'Sign up as a Customer'}
+                {loading ? 'Creating account...' : 'Sign up as a Seller'}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600">
-                    Want to sell products instead?
-                    <Link href="/seller/register" className="ml-1 font-medium text-blue-600 hover:text-blue-500">
-                        Register as a Seller
+                    Want to buy products instead?
+                    <Link href="/auth/register" className="ml-1 font-medium text-blue-600 hover:text-blue-500">
+                        Register as a Customer
                     </Link>
                 </p>
             </div>
