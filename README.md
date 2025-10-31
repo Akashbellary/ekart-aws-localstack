@@ -60,6 +60,12 @@ python scripts\test-serverless-apis.py
 #If frontend fails to work, run this script. This fixes api config to work with frontend.
 python scripts\configure-frontend.py 
 ```
+### Run the frontend
+```bash
+cd frontend
+pnpm run dev (or) npm install --legacy-peer-deps
+npm run dev 
+```
 
 ### Manual Setup Steps
 ```bash
