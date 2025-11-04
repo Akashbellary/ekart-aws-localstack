@@ -23,7 +23,7 @@ This tutorial demonstrates:
 
 ### Service Interactions
 ```
-![Alt AWS-Architecture](https://github.com/Akashbellary/ekart-aws-localstack/blob/main/ekart%20aws%20services%20arch.png)
+![Alt AWS-Architecture](https://raw.githubusercontent.com/Akashbellary/ekart-aws-localstack/main/ekart%20aws%20services%20arch.png)
 ```
 
 ## 🚀 Quick Start
