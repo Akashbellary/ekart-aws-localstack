@@ -23,7 +23,7 @@ This tutorial demonstrates:
 
 ### Service Interactions
 ```
-![Alt text](ekart aws services arch.png)
+![Alt AWS-Architecture](ekart%20aws%20services%20arch.png)
 ```
 
 ## 🚀 Quick Start
