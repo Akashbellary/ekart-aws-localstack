@@ -22,9 +22,8 @@ This tutorial demonstrates:
 - **CloudFormation** - Infrastructure provisioning
 
 ### Service Interactions
-```
-![Alt AWS-Architecture](https://raw.githubusercontent.com/Akashbellary/ekart-aws-localstack/main/ekart%20aws%20services%20arch.png)
-```
+
+![AWS Architecture](https://raw.githubusercontent.com/Akashbellary/ekart-aws-localstack/main/ekart%20aws%20services%20arch.png)
 
 ## 🚀 Quick Start
 
